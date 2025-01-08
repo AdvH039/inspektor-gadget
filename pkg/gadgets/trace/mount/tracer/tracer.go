@@ -169,6 +169,7 @@ func (t *Tracer) run() {
 			Source:        gadgets.FromCString(bpfEvent.Src[:]),
 			Target:        gadgets.FromCString(bpfEvent.Dest[:]),
 			Data:          gadgets.FromCString(bpfEvent.Data[:]),
+			Optype: bpfEvent.Optype
 		}
 
 		switch bpfEvent.Op {

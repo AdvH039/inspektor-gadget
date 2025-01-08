@@ -83,7 +83,7 @@ static int probe_exit(void *ctx, int ret)
 	eventp = bpf_map_lookup_elem(&heap, &zero);
 	if (!eventp)
 		goto cleanup;
-
+    eventp->optype = 1; // I am simply intiliasing it to 1
 	eventp->mount_ns_id = gadget_get_current_mntns_id();
 	eventp->timestamp = bpf_ktime_get_boot_ns();
 	eventp->delta = bpf_ktime_get_ns() - argp->ts;

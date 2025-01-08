@@ -13,6 +13,7 @@ import (
 )
 
 type mountsnoopEvent struct {
+	Optype 	  uint8
 	Delta     uint64
 	Flags     uint64
 	Pid       uint32

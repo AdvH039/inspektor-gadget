@@ -23,6 +23,7 @@ struct arg {
 };
 
 struct event {
+	__u8 optype; // variable to focus on
 	__u64 delta;
 	__u64 flags;
 	__u32 pid;

@@ -38,6 +38,7 @@ type Event struct {
 	Data      string   `json:"data,omitempty" column:"data,width:16,hide"`
 	Flags     []string `json:"flags,omitempty" column:"flags,width:24,hide"`
 	FlagsRaw  uint64   `json:"flagsRaw,omitempty"`
+	Optype uint8   `json:"optype,omitempty" column:"optype,width:16,hide"`
 }
 
 func GetColumns() *columns.Columns[Event] {
