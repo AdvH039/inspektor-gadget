@@ -34,12 +34,20 @@ const (
 
 	// Used to test gadget using kubectl-gadget for container running in k8s
 	KubectlGadgetTestComponent TestComponent = "kubectl-gadget"
+
+	DefaultClientImage 	= "docker.io/library/busybox:latest"
+
+	DefaultServerImage 	= "ghcr.io/inspektor-gadget/dnstester:latest"
 )
+
+	
 
 var (
 	Runtime              = eventtypes.RuntimeNameDocker.String()
 	ContainerRuntime     = Runtime
 	CurrentTestComponent = IgLocalTestComponent
+	ServerImage = DefaultServerImage
+	ClientImage = DefaultClientImage
 )
 
 func InitTest(t *testing.T) {
@@ -65,3 +73,17 @@ func InitTest(t *testing.T) {
 		}
 	}
 }
+
+func InitDnsTest() {
+	
+	if os.Getenv("CLIENT_IMAGE") != "" {
+		ClientImage = os.Getenv("CLIENT_IMAGE")
+	}
+
+	if os.Getenv("SERVER_IMAGE") != "" {
+		ClientImage = os.Getenv("SERVER_IMAGE")
+	}
+
+}
+
+

@@ -68,15 +68,13 @@ func TestTraceDNS(t *testing.T) {
 	require.NoError(t, err, "new container factory")
 	serverContainerName := "test-trace-dns-server"
 	clientContainerName := "test-trace-dns-client"
-	// TODO: this should be configurable
-	serverImage := "ghcr.io/inspektor-gadget/dnstester:latest"
-	clientImage := "docker.io/library/busybox:latest"
-
+	
+	utils.InitDnsTest()
 	// TODO: The current logic creates the namespace when running the pod, hence
 	// we need a namespace for each pod
 	var nsClient, nsServer string
-	serverContainerOpts := []containers.ContainerOption{containers.WithContainerImage(serverImage)}
-	clientContainerOpts := []containers.ContainerOption{containers.WithContainerImage(clientImage)}
+	serverContainerOpts := []containers.ContainerOption{containers.WithContainerImage(utils.ServerImage)}
+	clientContainerOpts := []containers.ContainerOption{containers.WithContainerImage(utils.ClientImage)}
 
 	if utils.CurrentTestComponent == utils.KubectlGadgetTestComponent {
 		nsClient = utils.GenerateTestNamespaceName(t, "test-trace-dns-client")
@@ -112,7 +110,7 @@ func TestTraceDNS(t *testing.T) {
 
 	var runnerOpts []igrunner.Option
 	var testingOpts []igtesting.Option
-	commonDataOpts := []utils.CommonDataOption{utils.WithContainerImageName(clientImage), utils.WithContainerID(clientContainer.ID())}
+	commonDataOpts := []utils.CommonDataOption{utils.WithContainerImageName(utils.ClientImage), utils.WithContainerID(clientContainer.ID())}
 
 	switch utils.CurrentTestComponent {
 	case utils.IgLocalTestComponent:
