@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	gadgettesting "github.com/inspektor-gadget/inspektor-gadget/gadgets/testing"
+	"github.com/inspektor-gadget/inspektor-gadget/pkg/container-utils/testutils"
 	igtesting "github.com/inspektor-gadget/inspektor-gadget/pkg/testing"
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/testing/containers"
 	igrunner "github.com/inspektor-gadget/inspektor-gadget/pkg/testing/ig"
@@ -72,18 +73,17 @@ func TestTraceDNS(t *testing.T) {
 	serverImage := "ghcr.io/inspektor-gadget/dnstester:latest"
 	clientImage := "docker.io/library/busybox:latest"
 
-	// TODO: The current logic creates the namespace when running the pod, hence
-	// we need a namespace for each pod
-	var nsClient, nsServer string
+	var nsTest string
 	serverContainerOpts := []containers.ContainerOption{containers.WithContainerImage(serverImage)}
 	clientContainerOpts := []containers.ContainerOption{containers.WithContainerImage(clientImage)}
 
 	if utils.CurrentTestComponent == utils.KubectlGadgetTestComponent {
-		nsClient = utils.GenerateTestNamespaceName(t, "test-trace-dns-client")
-		clientContainerOpts = append(clientContainerOpts, containers.WithContainerNamespace(nsClient))
-
-		nsServer = utils.GenerateTestNamespaceName(t, "test-trace-dns-server")
-		serverContainerOpts = append(serverContainerOpts, containers.WithContainerNamespace(nsServer))
+		nsTest = utils.GenerateTestNamespaceName(t, "test-trace-dns")
+		clientContainerOpts = append(clientContainerOpts, containers.WithContainerNamespace(nsTest))
+		clientContainerOpts = append(clientContainerOpts, containers.WithUseExistingNamespace())
+		serverContainerOpts = append(serverContainerOpts, containers.WithContainerNamespace(nsTest))
+		serverContainerOpts = append(serverContainerOpts, containers.WithUseExistingNamespace())
+		testutils.ExecuteCreateTestNamespaceCommand(t, nsTest)
 	}
 
 	serverContainer := containerFactory.NewContainer(serverContainerName, "/dnstester", serverContainerOpts...)
@@ -91,6 +91,7 @@ func TestTraceDNS(t *testing.T) {
 	t.Cleanup(func() {
 		serverContainer.Stop(t)
 	})
+	fmt.Print(nsTest)
 
 	serverIP := serverContainer.IP()
 	nslookupCmds := []string{
@@ -118,15 +119,15 @@ func TestTraceDNS(t *testing.T) {
 	case utils.IgLocalTestComponent:
 		runnerOpts = append(runnerOpts, igrunner.WithFlags(fmt.Sprintf("-r=%s", utils.Runtime), "--timeout=5"))
 	case utils.KubectlGadgetTestComponent:
-		runnerOpts = append(runnerOpts, igrunner.WithFlags(fmt.Sprintf("-n=%s", nsClient), "--timeout=5"))
-		testingOpts = append(testingOpts, igtesting.WithCbBeforeCleanup(utils.PrintLogsFn(nsClient)))
-		commonDataOpts = append(commonDataOpts, utils.WithK8sNamespace(nsClient))
+		runnerOpts = append(runnerOpts, igrunner.WithFlags(fmt.Sprintf("-n=%s", nsTest), "--timeout=5"))
+		testingOpts = append(testingOpts, igtesting.WithCbBeforeCleanup(utils.PrintLogsFn(nsTest)))
+		commonDataOpts = append(commonDataOpts, utils.WithK8sNamespace(nsTest))
 	}
 
 	runnerOpts = append(runnerOpts, igrunner.WithValidateOutput(
 		func(t *testing.T, output string) {
-			k8sDataClient := utils.BuildEndpointK8sData("pod", clientContainerName, nsClient, fmt.Sprintf("run=%s", clientContainerName))
-			k8sDataServer := utils.BuildEndpointK8sData("pod", serverContainerName, nsServer, fmt.Sprintf("run=%s", serverContainerName))
+			k8sDataClient := utils.BuildEndpointK8sData("pod", clientContainerName, nsTest, fmt.Sprintf("run=%s", clientContainerName))
+			k8sDataServer := utils.BuildEndpointK8sData("pod", serverContainerName, nsTest, fmt.Sprintf("run=%s", serverContainerName))
 			expectedEntries := []*traceDNSEvent{
 				// A query from client
 				{
@@ -297,4 +298,7 @@ func TestTraceDNS(t *testing.T) {
 	traceDNSCmd := igrunner.New("trace_dns", runnerOpts...)
 
 	igtesting.RunTestSteps([]igtesting.TestStep{traceDNSCmd}, t, testingOpts...)
+	if utils.CurrentTestComponent == utils.KubectlGadgetTestComponent {
+		testutils.ExecuteDeleteTestNamespaceCommand(t, nsTest)
+	}
 }
